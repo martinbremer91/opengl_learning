@@ -1,0 +1,3 @@
+#!/bin/bash
+
+g++ opengl.cpp -o opengl -lglfw
