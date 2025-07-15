@@ -3,7 +3,17 @@
 #include <GLFW/glfw3.h>
 #include <alloca.h>
 #include <iostream>
+#include <string>
+#include <fstream>
+#include <sstream>
 
+struct ShaderSource
+{
+	std::string vertex_source;
+	std::string fragment_source;
+};
+
+static ShaderSource ParseShader(const std::string &filepath);
 static unsigned int CreateShader(const std::string &vertexShader, const std::string &fragmentShader);
 static unsigned int CompileShader(unsigned int type, const std::string &source);
 
@@ -50,27 +60,9 @@ int main()
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
 	
-	std::string vertexShader = 
-		"#version 330 core\n"
-		"\n"
-		"layout(location = 0) in vec4 position;\n"
-		"\n"
-		"void main()\n"
-		"{\n"
-		"	gl_Position = position;\n"
-		"}\n";
-	
-	std::string fragmentShader = 
-		"#version 330 core\n"
-		"\n"
-		"layout(location = 0) out vec4 color;\n"
-		"\n"
-		"void main()\n"
-		"{\n"
-		"	color = vec4(1.0, 0.0, 0.0, 1.0);\n"
-		"}\n";
+	ShaderSource shader_source = ParseShader("shaders/basic.shader");
 
-	unsigned int shader = CreateShader(vertexShader, fragmentShader);
+	unsigned int shader = CreateShader(shader_source.vertex_source, shader_source.fragment_source);
 	glUseProgram(shader);
 
 	while(!glfwWindowShouldClose(window))
@@ -87,6 +79,34 @@ int main()
 
 	glfwTerminate();
 	return 0;
+}
+
+static ShaderSource ParseShader(const std::string &filepath)
+{
+	std::ifstream stream(filepath);
+
+	enum ShaderType{ NONE = -1, VERTEX = 0, FRAGMENT = 1 };
+	ShaderType shader_type = NONE;
+	
+	std::string line;
+	std::stringstream string_streams[2];
+
+	while (getline(stream, line))
+	{
+		if (line.find("#shader") != std::string::npos)
+		{
+			if (line.find("vertex") != std::string::npos)
+				shader_type = VERTEX;
+			else if (line.find("fragment") != std::string::npos)
+				shader_type = FRAGMENT;
+		}
+		else
+		{
+			string_streams[(int)shader_type] << line << std::endl;
+		}
+	}
+
+	return { string_streams[0].str(), string_streams[1].str() };
 }
 
 static unsigned int CreateShader(const std::string &vertexShader, const std::string &fragmentShader)
