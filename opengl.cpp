@@ -43,6 +43,7 @@ int main()
 	window = glfwCreateWindow(640, 480, "Window", NULL, NULL);
 
 	glfwMakeContextCurrent(window);
+	glfwSwapInterval(1);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
@@ -55,10 +56,6 @@ int main()
 
 	GLCall(glClearColor(0.25f, 0.5f, 0.75f, 1.0f));
 
-	unsigned int vertex_array_obj;
-	GLCall(glGenVertexArrays(1, &vertex_array_obj));
-	GLCall(glBindVertexArray(vertex_array_obj));
-
 	float vert_positions[] = {
 		-0.5f, -0.5f,
 		 0.5f, -0.5f,
@@ -66,19 +63,23 @@ int main()
 		-0.5f,  0.5f
 	};
 
-	unsigned int vert_buffer;
-	GLCall(glGenBuffers(1, &vert_buffer));
-	GLCall(glBindBuffer(GL_ARRAY_BUFFER, vert_buffer));
-	GLCall(glBufferData(GL_ARRAY_BUFFER, 6 * 2 * sizeof(float), vert_positions, GL_STATIC_DRAW));
-
-	GLCall(glEnableVertexAttribArray(0));
-	GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0));
-	
 	unsigned int indices[] = {
 		0, 1, 2,
 		2, 3, 0
 	};
 
+	unsigned int vertex_array_obj;
+	GLCall(glGenVertexArrays(1, &vertex_array_obj));
+	GLCall(glBindVertexArray(vertex_array_obj));
+
+	unsigned int vert_buffer;
+	GLCall(glGenBuffers(1, &vert_buffer));
+	GLCall(glBindBuffer(GL_ARRAY_BUFFER, vert_buffer));
+	GLCall(glBufferData(GL_ARRAY_BUFFER, 4 * 2 * sizeof(float), vert_positions, GL_STATIC_DRAW));
+
+	GLCall(glEnableVertexAttribArray(0));
+	GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0));
+	
 	unsigned int index_buffer_object;
 	GLCall(glGenBuffers(1, &index_buffer_object));
 	GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_object));
@@ -89,11 +90,35 @@ int main()
 	unsigned int shader = CreateShader(shader_source.vertex_source, shader_source.fragment_source);
 	GLCall(glUseProgram(shader));
 
+	GLCall(int location = glGetUniformLocation(shader, "u_color"));
+	GLCall(glUniform4f(location, 0.2f, 0.3f, 0.8f, 1.0f));
+
+	GLCall(glBindVertexArray(0));
+	GLCall(glUseProgram(0));
+	GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
+	GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0));
+
+	float r = 0.0f;
+	float increment = 0.05f;
+
 	while(!glfwWindowShouldClose(window))
 	{
 		GLCall(glClear(GL_COLOR_BUFFER_BIT));
 
+		GLCall(glUseProgram(shader));
+		GLCall(glUniform4f(location, r, 0.3f, 0.8f, 1.0f));
+
+		GLCall(glBindVertexArray(vertex_array_obj));
+		GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer_object));
+
 		GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
+
+		if (r > 1.0f)
+			increment = -0.05f;
+		else if (r < 0.0f)
+			increment = 0.05f;
+
+		r += increment;
 
 		glfwSwapBuffers(window);
 		GLCall(glfwPollEvents());
